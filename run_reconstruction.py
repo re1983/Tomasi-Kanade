@@ -7,7 +7,7 @@ from plyfile import PlyData
 from matplotlib import pyplot as plt
 
 from tomasi_kanade import TomasiKanade
-from visualization import plot3d, plot_result
+from visualization import plot3d, plot_result, plot2d
 import rigid_motion
 
 
@@ -143,7 +143,9 @@ def main():
     # Load the 3D object from the file
     X_true = read_object(filename)
     X_true = normalize_object_size(X_true)
-
+    # X_true = np.array([[0, 0, 0.5], [0.5, 0.866025403784439, 0.5], [1, 0, 0.5], [0, 1, 0.5], [0.5, 1, 0.5], [1, 1, 0.5]])
+    print("Number of points: {}".format(X_true.shape[0]))
+    # print("X_true:", X_true)
     # Number of viewpoints to be used for reconstruction
     n_views = 128
 
@@ -157,15 +159,27 @@ def main():
     # though, this is used only for the evaluation, not reconstruction
     tomasi_kanade = TomasiKanade(X_eval=X_true, learning_rate=0.0027)
 
+    # RA = np.array([[[1, 0, 0], [0, 1, 0], [0, 0, 1]], [[1, 0, 0], [0, 0.707, -0.707], [0, 0.707, 0.707]], [[1, 0, 0], [0, 0.707, 0.707], [0, -0.707, 0.707]]])
+    # RA[1] = np.array([[1, 0, 0], [0, 0.707, -0.707], [0, 0.707, 0.707]])
+    # RA[2] = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+
     for i in range(n_views):
         # Generate a random camera pose
         R = rigid_motion.random_rotation_matrix_3d()
+        # R = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        # R = np.array([[1, 0, 0], [0, 0.707, -0.707], [0, 0.707, 0.707]])
+        # R = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+        # R = RA[i] 
+        # print("R:",R)
         t = rigid_motion.random_vector_3d()
+        # t = np.array([0, 0, 0])
+        # t = np.array([i-0.5, i-0.5, i-0.5])
+        # print("t:",t)
         camera.set_pose(R, t)
 
         # Observe the 3D object by projecting it onto the image plane
         image_points = take_picture(target_object, camera, noise_std)
-
+        # plot2d(image_points)
         tomasi_kanade.add_image_points(image_points)
 
     # Run reconstruction
@@ -174,8 +188,9 @@ def main():
     M, X = tomasi_kanade.run()
 
     V = to_viewpoints(M)
-
+    plot3d(X_true, azim=180, elev=90)
     plot3d(X, azim=180, elev=90)
+    # print("V:",V)
     plot_result(X, V)
     plt.show()
 
